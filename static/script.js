@@ -1,0 +1,692 @@
+
+
+// Dashboard JavaScript - Main app functionality
+let trackers = [];
+let currentFilter = 'all';
+let currentTracker = null;
+let priceFetchTimeout = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadTrackers();
+    setupNavigation();
+    loadUserData();
+});
+
+async function loadUserData() {
+    try {
+        const response = await fetch('/api/user');
+        if (response.ok) {
+            const user = await response.json();
+            if (user.username) {
+                document.getElementById('user-greeting').textContent = 'Welcome, ' + user.username;
+            }
+        }
+    } catch (error) {
+        console.log('User not logged in');
+    }
+}
+
+function setupNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const view = item.dataset.view;
+            switchView(view);
+        });
+    });
+}
+
+function switchView(viewName) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.view === viewName) {
+            item.classList.add('active');
+        }
+    });
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+    });
+    document.getElementById('view-' + viewName).classList.add('active');
+}
+
+function setLoadingState(loading, message) {
+    const mainBtn = document.getElementById('mainBtn');
+    if (!mainBtn) return;
+    
+    if (loading) {
+        mainBtn.disabled = true;
+        mainBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + (message || 'Loading...');
+    } else {
+        mainBtn.disabled = false;
+        mainBtn.innerHTML = 'Start AI Tracking';
+    }
+}
+
+function clearPriceFetchTimeout() {
+    if (priceFetchTimeout) {
+        clearTimeout(priceFetchTimeout);
+        priceFetchTimeout = null;
+    }
+}
+
+async function handleFlow() {
+    const urlInput = document.getElementById('urlInput');
+    const priceStep = document.getElementById('priceStep');
+    const mainBtn = document.getElementById('mainBtn');
+    
+    if (!urlInput) {
+        showToast('error', 'URL input element not found');
+        return;
+    }
+    
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+        showToast('error', 'Please enter a URL');
+        return;
+    }
+    
+    if (priceStep.style.display === 'none') {
+        // First step: fetch price
+        setLoadingState(true, 'Fetching price...');
+        
+        // Set a timeout to fail after 10 seconds
+        clearPriceFetchTimeout();
+        priceFetchTimeout = setTimeout(() => {
+            setLoadingState(false);
+            showToast('error', 'Request timed out. The site may be slow or blocking requests.');
+        }, 10000);
+        
+        try {
+            const response = await fetch('/get-price', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+            
+            clearPriceFetchTimeout();
+            const data = await response.json();
+            
+            if (response.ok) {
+                priceStep.style.display = 'block';
+                priceStep.innerHTML = '<p><strong>Current Price: ' + data.currency_symbol + data.price + '</strong></p>' +
+                    '<input type="number" id="targetPrice" class="product-input" style="width: 150px;" placeholder="Set target price" value="' + (data.price * 0.9).toFixed(2) + '">';
+                mainBtn.innerHTML = 'Create Tracker';
+                setLoadingState(false);
+                
+                // Store the product name and price data for later use
+                priceStep.dataset.productName = data.productName || 'Product';
+                priceStep.dataset.currentPrice = data.price;
+                priceStep.dataset.currency = data.currency;
+                priceStep.dataset.currencySymbol = data.currency_symbol;
+            } else {
+                setLoadingState(false);
+                showToast('error', data.error || 'Failed to fetch price');
+                if (data.suggestion) {
+                    showToast('info', data.suggestion);
+                }
+            }
+        } catch (error) {
+            clearPriceFetchTimeout();
+            setLoadingState(false);
+            showToast('error', 'Failed to connect to server: ' + error.message);
+        }
+    } else {
+        // Second step: create tracker
+        const targetPrice = document.getElementById('targetPrice').value;
+        if (!targetPrice) {
+            showToast('error', 'Please set a target price');
+            return;
+        }
+        
+        const currentPrice = parseFloat(priceStep.dataset.currentPrice || priceStep.querySelector('strong')?.textContent?.replace(/[^0-9.]/g, '') || 0);
+        const productName = priceStep.dataset.productName || 'Product';
+        const currency = priceStep.dataset.currency || 'USD';
+        const currencySymbol = priceStep.dataset.currencySymbol || '$';
+        
+        await createTracker(url, targetPrice, currentPrice, productName, currency, currencySymbol);
+    }
+}
+
+async function createTracker(url, targetPrice, currentPrice, productName, currency, currencySymbol) {
+    const urlInput = document.getElementById('urlInput');
+    const mainBtn = document.getElementById('mainBtn');
+    const priceStep = document.getElementById('priceStep');
+    
+    if (!mainBtn || !priceStep) {
+        showToast('error', 'Required elements not found');
+        return;
+    }
+    
+    setLoadingState(true, 'Creating tracker...');
+    
+    try {
+        // Fetch fresh price to ensure accuracy
+        const response = await fetch('/get-price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url })
+        });
+        const priceData = await response.json();
+        if (!response.ok) throw new Error(priceData.error || 'Failed to fetch price');
+        
+        const finalProductName = priceData.productName || productName;
+        
+        // Create tracker via API
+        const createResponse = await fetch('/api/trackers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url: url,
+                currentPrice: priceData.price,
+                targetPrice: parseFloat(targetPrice),
+                currency: priceData.currency,
+                currencySymbol: priceData.currency_symbol,
+                productName: finalProductName
+            })
+        });
+        
+        if (!createResponse.ok) {
+            throw new Error('Failed to create tracker');
+        }
+        
+        const newTracker = {
+            id: Date.now(),
+            url: url,
+            productName: finalProductName,
+            currentPrice: priceData.price,
+            targetPrice: parseFloat(targetPrice),
+            currency: priceData.currency,
+            currencySymbol: priceData.currency_symbol,
+            createdAt: new Date().toISOString()
+        };
+        trackers.push(newTracker);
+        localStorage.setItem('trackers', JSON.stringify(trackers));
+        
+        setLoadingState(false);
+        showToast('success', 'Tracker created successfully!');
+        
+        urlInput.value = '';
+        priceStep.style.display = 'none';
+        mainBtn.innerHTML = 'Start AI Tracking';
+        
+        renderTrackers();
+        updateStats();
+        switchView('my-trackers');
+    } catch (error) {
+        setLoadingState(false);
+        showToast('error', error.message);
+    }
+}
+
+function loadTrackers() {
+    trackers = JSON.parse(localStorage.getItem('trackers') || '[]');
+    renderTrackers();
+    updateStats();
+}
+
+function renderTrackers() {
+    const container = document.getElementById('trackers-list');
+    if (trackers.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fa fa-rocket"></i><h3>No trackers yet!</h3><p>Create your first price alert to start saving money</p><button class="action-btn" onclick="switchView(\'new-alert\')">Create Tracker</button></div>';
+        return;
+    }
+    let filteredTrackers = trackers;
+    if (currentFilter !== 'all') {
+        filteredTrackers = trackers.filter(t => {
+            if (currentFilter === 'active') return t.currentPrice > t.targetPrice;
+            if (currentFilter === 'reached') return t.currentPrice <= t.targetPrice;
+            return true;
+        });
+    }
+    container.innerHTML = filteredTrackers.map(tracker => {
+        const status = tracker.currentPrice <= tracker.targetPrice ? 'reached' : 'active';
+        const statusClass = status === 'reached' ? 'status-reached' : 'status-active';
+        const statusText = status === 'reached' ? 'Target Reached!' : 'Active';
+        return '<div class="tracker-card" data-id="' + tracker.id + '"><div class="tracker-header"><div class="tracker-info"><h4>' + (tracker.productName || 'Product') + '</h4><div class="tracker-url">' + tracker.url + '</div></div><div class="tracker-checkbox" onclick="event.stopPropagation(); toggleSelect(' + tracker.id + ')"><i class="fa fa-check" style="display: none;"></i></div></div><div class="tracker-prices"><div class="price-info current"><span class="price-label">Current</span><span class="price-amount">' + tracker.currencySymbol + tracker.currentPrice + '</span></div><div class="price-info target"><span class="price-label">Target</span><span class="price-amount">' + tracker.currencySymbol + tracker.targetPrice + '</span></div><div class="price-status ' + statusClass + '">' + statusText + '</div></div><div class="tracker-actions"><button class="tracker-action" onclick="viewTrends(' + tracker.id + ')"><i class="fa fa-chart-line"></i> Trends</button><button class="tracker-action" onclick="refreshPrice(' + tracker.id + ')"><i class="fa fa-refresh"></i> Refresh</button><button class="tracker-action delete" onclick="deleteTracker(' + tracker.id + ')"><i class="fa fa-trash"></i></button></div></div>';
+    }).join('');
+    updateCounts();
+}
+
+function updateStats() {
+    document.getElementById('sidebar-active-trackers').textContent = trackers.length;
+    document.getElementById('sidebar-deals').textContent = trackers.filter(t => t.currentPrice <= t.targetPrice).length;
+    document.getElementById('total-trackers').textContent = trackers.length;
+    document.getElementById('active-deals').textContent = trackers.filter(t => t.currentPrice <= t.targetPrice).length;
+    if (trackers.length > 0) document.getElementById('avg-savings').textContent = '10%';
+}
+
+function updateCounts() {
+    document.getElementById('count-all').textContent = trackers.length;
+    document.getElementById('count-active').textContent = trackers.filter(t => t.currentPrice > t.targetPrice).length;
+    document.getElementById('count-reached').textContent = trackers.filter(t => t.currentPrice <= t.targetPrice).length;
+}
+
+function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.filter === filter) tab.classList.add('active');
+    });
+    renderTrackers();
+}
+
+function filterTrackers() {
+    const search = document.getElementById('tracker-search').value.toLowerCase();
+    const cards = document.querySelectorAll('.tracker-card');
+    cards.forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(search) ? 'block' : 'none';
+    });
+}
+
+function sortTrackers() {
+    const sortBy = document.getElementById('sort-trackers').value;
+    trackers.sort((a, b) => {
+        if (sortBy === 'date') return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortBy === 'name') return (a.productName || '').localeCompare(b.productName || '');
+        if (sortBy === 'price') return a.currentPrice - b.currentPrice;
+        return 0;
+    });
+    renderTrackers();
+}
+
+function viewTrends(trackerId) {
+    const tracker = trackers.find(t => t.id === trackerId);
+    if (!tracker) return;
+    currentTracker = tracker;
+    switchView('price-trends');
+    document.querySelector('.product-details h3').textContent = tracker.productName || 'Product';
+    document.querySelector('.product-details p').textContent = tracker.url;
+    document.getElementById('original-price').textContent = tracker.currencySymbol + tracker.currentPrice;
+    document.getElementById('current-price').textContent = tracker.currencySymbol + tracker.currentPrice;
+    const savings = tracker.currentPrice - tracker.targetPrice;
+    document.getElementById('savings-amount').textContent = tracker.currencySymbol + savings.toFixed(2);
+    generateChart(tracker);
+    const prediction = tracker.currentPrice <= tracker.targetPrice ? 'Price is at or below your target!' : 'Price may drop further';
+    document.getElementById('prediction-text').textContent = prediction;
+    document.getElementById('confidence').textContent = '85%';
+}
+
+function generateChart(tracker) {
+    const chartContainer = document.querySelector('.chart-main');
+    const days = 7;
+    const data = [];
+    let basePrice = tracker.currentPrice;
+    for (let i = 0; i < days; i++) {
+        const variation = (Math.random() - 0.5) * basePrice * 0.1;
+        data.push(basePrice + variation);
+    }
+    data[days - 1] = tracker.currentPrice;
+    const maxPrice = Math.max(...data);
+    chartContainer.innerHTML = '<div class="chart-placeholder"><div class="chart-line">' + data.map(price => '<div class="chart-bar" style="height: ' + ((price / maxPrice) * 150) + 'px;" title="' + price.toFixed(2) + '"></div>').join('') + '</div><div class="chart-labels">' + Array.from({length: days}, (_, i) => { const date = new Date(); date.setDate(date.getDate() - (days - 1 - i)); return '<span>' + date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) + '</span>'; }).join('') + '</div></div>';
+    document.getElementById('trend-lowest').textContent = tracker.currencySymbol + Math.min(...data).toFixed(2);
+    document.getElementById('trend-highest').textContent = tracker.currencySymbol + Math.max(...data).toFixed(2);
+    document.getElementById('trend-since').textContent = new Date(tracker.createdAt).toLocaleDateString();
+    document.getElementById('buy-now-btn').style.display = tracker.currentPrice <= tracker.targetPrice ? 'flex' : 'none';
+    document.getElementById('buy-now-btn').onclick = () => window.open(tracker.url, '_blank');
+}
+
+async function refreshPrice(trackerId) {
+    const tracker = trackers.find(t => t.id === trackerId);
+    if (!tracker) return;
+    
+    // Find the refresh button and show loading
+    const card = document.querySelector('.tracker-card[data-id="' + trackerId + '"]');
+    const refreshBtn = card?.querySelector('.tracker-action[onclick*="refreshPrice"]');
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    }
+    
+    // Set timeout for refresh
+    const refreshTimeout = setTimeout(() => {
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<i class="fa fa-refresh"></i> Refresh';
+        }
+        showToast('error', 'Refresh timed out. Try again later.');
+    }, 8000);
+    
+    try {
+        const response = await fetch('/get-price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: tracker.url })
+        });
+        clearTimeout(refreshTimeout);
+        
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<i class="fa fa-refresh"></i> Refresh';
+        }
+        
+        const data = await response.json();
+        if (response.ok) {
+            tracker.currentPrice = data.price;
+            tracker.productName = data.productName || tracker.productName;
+            localStorage.setItem('trackers', JSON.stringify(trackers));
+            showToast('success', 'Price updated: ' + data.currency_symbol + data.price);
+            renderTrackers();
+            updateStats();
+        } else {
+            showToast('error', data.error || 'Failed to refresh price');
+        }
+    } catch (error) {
+        clearTimeout(refreshTimeout);
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<i class="fa fa-refresh"></i> Refresh';
+        }
+        showToast('error', 'Failed to connect to server');
+    }
+}
+
+function deleteTracker(trackerId) {
+    if (!confirm('Are you sure you want to delete this tracker?')) return;
+    trackers = trackers.filter(t => t.id !== trackerId);
+    localStorage.setItem('trackers', JSON.stringify(trackers));
+    renderTrackers();
+    updateStats();
+    showToast('success', 'Tracker deleted');
+}
+
+function toggleSelect(trackerId) {
+    const checkbox = document.querySelector('.tracker-card[data-id="' + trackerId + '"] .tracker-checkbox');
+    checkbox.classList.toggle('checked');
+    const icon = checkbox.querySelector('i');
+    icon.style.display = checkbox.classList.contains('checked') ? 'block' : 'none';
+}
+
+function setTimePeriod(period) {
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.toLowerCase().includes(period)) btn.classList.add('active');
+    });
+    if (currentTracker) generateChart(currentTracker);
+}
+
+function showToast(type, message) {
+    // Handle backward compatibility: if only one argument is passed, treat it as message with type 'success'
+    if (typeof type === 'string' && typeof message === 'undefined') {
+        message = type;
+        type = 'success';
+    }
+    
+    // Remove any existing toast-notification from auth.js
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toast = document.getElementById('toast');
+    if (!toast) {
+        console.error('Toast element not found');
+        return;
+    }
+    
+    const toastMsg = document.getElementById('toastMsg');
+    const toastTitle = document.getElementById('toast-title');
+    const toastIcon = toast.querySelector('.toast-icon');
+    
+    if (toastTitle) {
+        toastTitle.textContent = type === 'success' ? 'Success!' : 'Error!';
+    }
+    if (toastMsg) {
+        toastMsg.textContent = message;
+    }
+    if (toastIcon) {
+        toastIcon.className = 'toast-icon ' + type;
+    }
+    
+    toast.classList.add('active');
+    
+    // Clear any existing timeout
+    if (toast.timeoutId) {
+        clearTimeout(toast.timeoutId);
+    }
+    
+    toast.timeoutId = setTimeout(() => {
+        toast.classList.remove('active');
+    }, 4000);
+}
+
+function saveSettings() {
+    localStorage.setItem('settings', JSON.stringify({
+        pushNotifications: document.getElementById('push-notifications').checked,
+        emailAlerts: document.getElementById('email-alerts').checked,
+        darkMode: document.getElementById('dark-mode').checked,
+        compactView: document.getElementById('compact-view').checked,
+        refreshInterval: document.getElementById('refresh-interval').value,
+        autoDelete: document.getElementById('auto-delete').value,
+        dropPercentage: document.getElementById('drop-percentage').value
+    }));
+    showToast('success', 'Settings saved');
+}
+
+function saveCurrencyPreference() {
+    localStorage.setItem('currency', document.getElementById('currency-select').value);
+    showToast('success', 'Currency preference saved');
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    saveSettings();
+}
+
+function connectTelegram() {
+    // Create Telegram connection modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'telegram-modal';
+    modal.innerHTML = `
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fa fa-telegram"></i> Connect Telegram</h3>
+                <button class="modal-close" onclick="closeModal('telegram-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon telegram-icon">
+                    <i class="fa fa-telegram"></i>
+                </div>
+                <p>Get instant price drop alerts on Telegram!</p>
+                <div class="modal-steps">
+                    <ol>
+                        <li>Open Telegram and search for <strong id="bot-username">@AI_Price_Alert_Bot</strong></li>
+                        <li>Start a chat with the bot</li>
+                        <li>Click "Start" or send /start</li>
+                        <li>Your chat ID will be sent automatically</li>
+                    </ol>
+                </div>
+                <button class="action-btn" onclick="openTelegramBot()">
+                    <i class="fa fa-external-link"></i> Open Telegram Bot
+                </button>
+                <div class="connection-status" id="telegram-status">
+                    <span class="status-badge disconnected">Not Connected</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function connectWhatsApp() {
+    // Create WhatsApp connection modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'whatsapp-modal';
+    modal.innerHTML = `
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fa fa-whatsapp"></i> Connect WhatsApp</h3>
+                <button class="modal-close" onclick="closeModal('whatsapp-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon whatsapp-icon">
+                    <i class="fa fa-whatsapp"></i>
+                </div>
+                <p>Get price drop alerts on WhatsApp!</p>
+                <div class="form-group">
+                    <label>Enter your WhatsApp number:</label>
+                    <input type="tel" id="whatsapp-number" class="product-input" placeholder="+1234567890">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 12px; color: #666;">Include country code (e.g., +91 for India)</label>
+                </div>
+                <button class="action-btn" onclick="saveWhatsAppNumber()">
+                    <i class="fa fa-check"></i> Connect WhatsApp
+                </button>
+                <div class="connection-status" id="whatsapp-status">
+                    <span class="status-badge disconnected">Not Connected</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function openTelegramBot() {
+    const botUsername = TELEGRAM_BOT_USERNAME || 'AI_Price_Alert_Bot';
+    window.open('https://t.me/' + botUsername, '_blank');
+    showToast('info', 'After starting the bot, return here and click "Check Connection"');
+}
+
+async function saveWhatsAppNumber() {
+    const phone = document.getElementById('whatsapp-number').value.trim();
+    if (!phone) {
+        showToast('error', 'Please enter your WhatsApp number');
+        return;
+    }
+    
+    // Validate phone format
+    const phoneClean = phone.replace(/[^\d+]/g, '');
+    if (phoneClean.length < 10) {
+        showToast('error', 'Invalid phone number format');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/notifications/whatsapp/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('success', data.message || 'WhatsApp connected!');
+            updateConnectionStatus('whatsapp', true);
+            closeModal('whatsapp-modal');
+        } else {
+            showToast('error', data.error || 'Failed to connect WhatsApp');
+        }
+    } catch (error) {
+        showToast('error', 'Connection failed: ' + error.message);
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+function updateConnectionStatus(service, connected) {
+    const statusEl = document.getElementById(service + '-status');
+    if (statusEl) {
+        const badge = statusEl.querySelector('.status-badge');
+        if (badge) {
+            badge.className = 'status-badge ' + (connected ? 'connected' : 'disconnected');
+            badge.textContent = connected ? 'Connected ✓' : 'Not Connected';
+        }
+    }
+}
+
+// Close modal on outside click
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+        setTimeout(() => e.target.remove(), 300);
+    }
+});
+
+function exportData() {
+    const data = JSON.stringify(trackers, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'price-tracker-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('success', 'Data exported');
+}
+
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (Array.isArray(imported)) {
+                trackers = imported;
+                localStorage.setItem('trackers', JSON.stringify(trackers));
+                renderTrackers();
+                updateStats();
+                showToast('success', 'Data imported successfully');
+            }
+        } catch (error) {
+            showToast('error', 'Invalid file format');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearAllData() {
+    if (!confirm('Are you sure you want to delete all trackers? This cannot be undone.')) return;
+    trackers = [];
+    localStorage.setItem('trackers', JSON.stringify(trackers));
+    renderTrackers();
+    updateStats();
+    showToast('success', 'All data cleared');
+}
+
+function exportTrackers() { exportData(); }
+
+function deleteSelected() {
+    const selected = document.querySelectorAll('.tracker-checkbox.checked');
+    if (selected.length === 0) {
+        showToast('error', 'No trackers selected');
+        return;
+    }
+    if (!confirm('Delete ' + selected.length + ' tracker(s)?')) return;
+    selected.forEach(checkbox => {
+        const card = checkbox.closest('.tracker-card');
+        const id = parseInt(card.dataset.id);
+        trackers = trackers.filter(t => t.id !== id);
+    });
+    localStorage.setItem('trackers', JSON.stringify(trackers));
+    renderTrackers();
+    updateStats();
+    document.getElementById('bulk-actions').style.display = 'none';
+    showToast('success', 'Selected trackers deleted');
+}
+
+function loadSettings() {
+    const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+    if (settings.pushNotifications !== undefined) document.getElementById('push-notifications').checked = settings.pushNotifications;
+    if (settings.emailAlerts !== undefined) document.getElementById('email-alerts').checked = settings.emailAlerts;
+    if (settings.darkMode !== undefined) document.getElementById('dark-mode').checked = settings.darkMode;
+    if (settings.compactView !== undefined) document.getElementById('compact-view').checked = settings.compactView;
+    if (settings.refreshInterval !== undefined) document.getElementById('refresh-interval').value = settings.refreshInterval;
+    if (settings.autoDelete !== undefined) document.getElementById('auto-delete').value = settings.autoDelete;
+    if (settings.dropPercentage !== undefined) document.getElementById('drop-percentage').value = settings.dropPercentage;
+    const currency = localStorage.getItem('currency');
+    if (currency) document.getElementById('currency-select').value = currency;
+}
+
+loadSettings();
