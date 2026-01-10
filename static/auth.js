@@ -1,28 +1,28 @@
-// Auth JavaScript - Handles Signup, Login, and Password Reset (NO OTP)
+// Auth JavaScript - Handles Signup, Login, and Password Reset (NO OTP VERSION)
 
 document.addEventListener('DOMContentLoaded', () => {
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
     const forgotPasswordForm = document.getElementById('forgot-password-form');
     const resetPasswordForm = document.getElementById('reset-password-form');
-    
+
     if (signupForm) signupForm.addEventListener('submit', handleSignup);
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
     if (forgotPasswordForm) forgotPasswordForm.addEventListener('submit', handleForgotPassword);
     if (resetPasswordForm) resetPasswordForm.addEventListener('submit', handleResetPassword);
 });
 
-// ==================== SIGNUP FUNCTIONS ====================
+// ==================== SIGNUP ====================
 
 async function handleSignup(e) {
     e.preventDefault();
-    
-    const username = document.getElementById('username')?.value;
-    const email = document.getElementById('email')?.value;
-    const phone = document.getElementById('phone')?.value;
+
+    const username = document.getElementById('username')?.value.trim();
+    const email = document.getElementById('email')?.value.trim();
+    const phone = document.getElementById('phone')?.value.trim();
     const password = document.getElementById('password')?.value;
     const confirmPassword = document.getElementById('confirm_password')?.value;
-    const submitBtn = e.target?.querySelector('button[type="submit"]');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
     if (!username || !email || !password || !confirmPassword) {
         showError('Please fill in all required fields');
@@ -39,54 +39,43 @@ async function handleSignup(e) {
         return;
     }
 
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating Account...';
-    }
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating Account...';
 
     try {
         const response = await fetch('/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password, phone })
+            body: JSON.stringify({ username, email, phone, password })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            showToast('success', 'Account created successfully! Redirecting to login...');
+            showToast('success', 'Account created successfully!');
             setTimeout(() => {
                 window.location.href = '/login';
             }, 1500);
         } else {
-            showError(data.error || 'Signup failed');
-            resetSignupButton(submitBtn);
+            showError(data.error || data.message || 'Signup failed');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Create Account</span><i class="fa fa-user-plus"></i>';
         }
-
     } catch (error) {
         console.error('Signup error:', error);
         showError('An error occurred. Please try again.');
-        resetSignupButton(submitBtn);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Create Account</span><i class="fa fa-user-plus"></i>';
     }
 }
 
-function resetSignupButton(btn) {
-    if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<span>Create Account</span><i class="fa fa-user-plus"></i>';
-    }
-}
-
-// ==================== LOGIN FUNCTIONS ====================
+// ==================== LOGIN ====================
 
 async function handleLogin(e) {
     e.preventDefault();
-    
-    const emailInput = document.getElementById('login-email') || document.getElementById('email');
-    const passwordInput = document.getElementById('login-password') || document.getElementById('password');
-    
-    const email = emailInput?.value;
-    const password = passwordInput?.value;
+
+    const email = document.getElementById('login-email')?.value || document.getElementById('email')?.value;
+    const password = document.getElementById('login-password')?.value || document.getElementById('password')?.value;
     const submitBtn = document.getElementById('login-btn');
 
     if (!email || !password) {
@@ -110,23 +99,23 @@ async function handleLogin(e) {
 
         if (response.ok) {
             showToast('success', 'Login successful!');
-            setTimeout(() => window.location.href = '/dashboard', 1200);
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 1200);
         } else {
             showError(data.error || 'Invalid credentials');
-            resetLoginButton(submitBtn);
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Sign In</span><i class="fa fa-arrow-right"></i>';
+            }
         }
-
     } catch (error) {
         console.error('Login error:', error);
-        showError('An error occurred');
-        resetLoginButton(submitBtn);
-    }
-}
-
-function resetLoginButton(btn) {
-    if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<span>Sign In</span><i class="fa fa-arrow-right"></i>';
+        showError('An error occurred. Please try again.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Sign In</span><i class="fa fa-arrow-right"></i>';
+        }
     }
 }
 
@@ -134,19 +123,17 @@ function resetLoginButton(btn) {
 
 async function handleForgotPassword(e) {
     e.preventDefault();
-    
+
     const email = document.getElementById('forgot-email')?.value || document.getElementById('email')?.value;
-    const submitBtn = e.target?.querySelector('button[type="submit"]');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
     if (!email) {
         showError('Please enter your email address');
         return;
     }
 
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
-    }
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
 
     try {
         const response = await fetch('/api/forgot-password', {
@@ -159,15 +146,17 @@ async function handleForgotPassword(e) {
 
         if (response.ok) {
             showToast('success', data.message || 'Reset link sent');
+            submitBtn.innerHTML = '<i class="fa fa-check"></i> Sent!';
         } else {
             showError(data.error || 'Failed to send reset link');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Send Reset Link';
         }
-
     } catch (error) {
-        console.error('Forgot password error:', error);
+        console.error(error);
         showError('An error occurred');
-    } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Send Reset Link';
     }
 }
 
@@ -175,10 +164,10 @@ async function handleForgotPassword(e) {
 
 async function handleResetPassword(e) {
     e.preventDefault();
-    
+
     const password = document.getElementById('reset-password')?.value;
     const confirmPassword = document.getElementById('reset-confirm-password')?.value;
-    const submitBtn = e.target?.querySelector('button[type="submit"]');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
     if (!password || !confirmPassword) {
         showError('Please enter both passwords');
@@ -190,17 +179,16 @@ async function handleResetPassword(e) {
         return;
     }
 
-    const token = new URLSearchParams(window.location.search).get('token');
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
 
     if (!token) {
         showError('Invalid reset link');
         return;
     }
 
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Resetting...';
-    }
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Resetting...';
 
     try {
         const response = await fetch('/api/reset-password', {
@@ -213,16 +201,19 @@ async function handleResetPassword(e) {
 
         if (response.ok) {
             showToast('success', 'Password reset successfully');
-            setTimeout(() => window.location.href = '/login', 1500);
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1500);
         } else {
             showError(data.error || 'Reset failed');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Reset Password';
         }
-
     } catch (error) {
-        console.error('Reset password error:', error);
+        console.error(error);
         showError('An error occurred');
-    } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Reset Password';
     }
 }
 
@@ -231,19 +222,19 @@ async function handleResetPassword(e) {
 function showError(message, elementId = 'error-message') {
     const el = document.getElementById(elementId);
     if (el) {
-        el.innerHTML = '<i class="fa fa-exclamation-circle"></i><span>' + message + '</span>';
+        el.innerHTML = `<i class="fa fa-exclamation-circle"></i><span>${message}</span>`;
         el.style.display = 'flex';
     }
 }
 
 function showToast(type, message) {
-    if (typeof message === 'undefined') {
+    if (!message) {
         message = type;
         type = 'success';
     }
 
-    const existing = document.querySelector('.toast-notification');
-    if (existing) existing.remove();
+    const old = document.querySelector('.toast-notification');
+    if (old) old.remove();
 
     const toast = document.createElement('div');
     toast.className = 'toast-notification';
@@ -252,29 +243,16 @@ function showToast(type, message) {
             <i class="fa fa-${type === 'success' ? 'check' : 'times'}"></i>
         </div>
         <div class="toast-content">
-            <strong>${type === 'success' ? 'Success!' : 'Error!'}</strong>
+            <strong>${type === 'success' ? 'Success' : 'Error'}</strong>
             <span>${message}</span>
         </div>
     `;
 
-    if (!document.getElementById('toast-styles')) {
-        const style = document.createElement('style');
-        style.id = 'toast-styles';
-        style.textContent = `
-            .toast-notification{position:fixed;top:24px;right:24px;background:#1d1d1f;color:#fff;padding:16px 24px;border-radius:14px;display:flex;gap:16px;z-index:9999;transform:translateX(120%);transition:.4s}
-            .toast-notification.active{transform:translateX(0)}
-            .toast-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
-            .toast-icon.success{background:#38ef7d}
-            .toast-icon.error{background:#ef473a}
-        `;
-        document.head.appendChild(style);
-    }
-
     document.body.appendChild(toast);
 
-    setTimeout(() => toast.classList.add('active'), 10);
+    setTimeout(() => toast.classList.add('active'), 50);
     setTimeout(() => {
         toast.classList.remove('active');
-        setTimeout(() => toast.remove(), 400);
-    }, 3500);
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
