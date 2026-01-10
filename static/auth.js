@@ -1,8 +1,4 @@
-// Auth JavaScript - Handles Signup, Login, and Password Reset
-
-let signupToken = null;
-let emailVerified = false;
-let phoneVerified = false;
+// Auth JavaScript - Handles Signup, Login, and Password Reset (NO OTP)
 
 document.addEventListener('DOMContentLoaded', () => {
     const signupForm = document.getElementById('signup-form');
@@ -10,22 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const forgotPasswordForm = document.getElementById('forgot-password-form');
     const resetPasswordForm = document.getElementById('reset-password-form');
     
-    if (signupForm) {
-        signupForm.addEventListener('submit', handleSignup);
-        setupSignupOTPEvents();
-    }
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-
-    if (forgotPasswordForm) {
-        forgotPasswordForm.addEventListener('submit', handleForgotPassword);
-    }
-
-    if (resetPasswordForm) {
-        resetPasswordForm.addEventListener('submit', handleResetPassword);
-    }
+    if (signupForm) signupForm.addEventListener('submit', handleSignup);
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (forgotPasswordForm) forgotPasswordForm.addEventListener('submit', handleForgotPassword);
+    if (resetPasswordForm) resetPasswordForm.addEventListener('submit', handleResetPassword);
 });
 
 // ==================== SIGNUP FUNCTIONS ====================
@@ -38,478 +22,58 @@ async function handleSignup(e) {
     const phone = document.getElementById('phone')?.value;
     const password = document.getElementById('password')?.value;
     const confirmPassword = document.getElementById('confirm_password')?.value;
-    const errorMessage = document.getElementById('error-message');
     const submitBtn = e.target?.querySelector('button[type="submit"]');
-    
-    // Validate required fields
+
     if (!username || !email || !password || !confirmPassword) {
         showError('Please fill in all required fields');
         return;
     }
-    
-    // Validate passwords match
+
     if (password !== confirmPassword) {
         showError('Passwords do not match');
         return;
     }
-    
-    // Validate password strength
+
     if (password.length < 6) {
         showError('Password must be at least 6 characters');
         return;
     }
-    
-    // Show loading state
+
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending OTP...';
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating Account...';
     }
-    if (errorMessage) {
-        errorMessage.style.display = 'none';
-    }
-    
+
     try {
         const response = await fetch('/signup', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password, phone })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
-            // Store signup token and show verification section
-            signupToken = data.signupToken;
-            showVerificationSection(email, phone);
+            showToast('success', 'Account created successfully! Redirecting to login...');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1500);
         } else {
-            showError(data.error || 'Failed to send OTP. Please try again.');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Continue to Verification</span><i class="fa fa-arrow-right"></i>';
-            }
+            showError(data.error || 'Signup failed');
+            resetSignupButton(submitBtn);
         }
+
     } catch (error) {
         console.error('Signup error:', error);
         showError('An error occurred. Please try again.');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Continue to Verification</span><i class="fa fa-arrow-right"></i>';
-        }
+        resetSignupButton(submitBtn);
     }
 }
 
-function showVerificationSection(email, phone) {
-    const signupForm = document.getElementById('signup-form');
-    const verificationSection = document.getElementById('verification-section');
-    
-    // Hide signup form
-    if (signupForm) {
-        signupForm.style.display = 'none';
-    }
-    
-    // Show verification section
-    if (verificationSection) {
-        verificationSection.style.display = 'block';
-    }
-    
-    // Update progress
-    updateProgress(2);
-    
-    // Setup email verification
-    const emailAddressEl = document.getElementById('email-address');
-    const emailVerificationEl = document.getElementById('email-verification');
-    if (email && emailAddressEl) {
-        const targetSpan = emailAddressEl.querySelector('.target');
-        if (targetSpan) {
-            targetSpan.textContent = email;
-        }
-        if (emailVerificationEl) {
-            emailVerificationEl.style.display = 'block';
-        }
-    }
-    
-    // Setup phone verification
-    const phoneNumberEl = document.getElementById('phone-number');
-    const phoneVerificationEl = document.getElementById('phone-verification');
-    if (phone && phoneNumberEl) {
-        const targetSpan = phoneNumberEl.querySelector('.target');
-        if (targetSpan) {
-            targetSpan.textContent = phone;
-        }
-        if (phoneVerificationEl) {
-            phoneVerificationEl.style.display = 'block';
-        }
-    }
-    
-    // Auto-send email OTP
-    sendEmailOTP(email, 'verification');
-}
-
-function setupSignupOTPEvents() {
-    // Send Email OTP
-    const sendEmailOtpBtn = document.getElementById('send-email-otp');
-    if (sendEmailOtpBtn) {
-        sendEmailOtpBtn.addEventListener('click', () => {
-            const email = document.getElementById('email')?.value;
-            if (email) {
-                sendEmailOTP(email, 'verification');
-            } else {
-                showError('Email is required');
-            }
-        });
-    }
-    
-    // Verify Email OTP
-    const verifyEmailOtpBtn = document.getElementById('verify-email-otp');
-    if (verifyEmailOtpBtn) {
-        verifyEmailOtpBtn.addEventListener('click', () => {
-            const email = document.getElementById('email')?.value;
-            const otp = document.getElementById('email-otp')?.value;
-            if (email && otp) {
-                verifyEmailOTP(email, otp);
-            } else {
-                showError('Please enter the OTP sent to your email');
-            }
-        });
-    }
-    
-    // Send Phone OTP
-    const sendPhoneOtpBtn = document.getElementById('send-phone-otp');
-    if (sendPhoneOtpBtn) {
-        sendPhoneOtpBtn.addEventListener('click', () => {
-            const phone = document.getElementById('phone')?.value;
-            if (phone) {
-                sendPhoneOTP(phone, 'verification');
-            } else {
-                showError('Phone number is required');
-            }
-        });
-    }
-    
-    // Verify Phone OTP
-    const verifyPhoneOtpBtn = document.getElementById('verify-phone-otp');
-    if (verifyPhoneOtpBtn) {
-        verifyPhoneOtpBtn.addEventListener('click', () => {
-            const phone = document.getElementById('phone')?.value;
-            const otp = document.getElementById('phone-otp')?.value;
-            if (phone && otp) {
-                verifyPhoneOTP(phone, otp);
-            } else {
-                showError('Please enter the OTP sent to your phone');
-            }
-        });
-    }
-    
-    // Complete Signup
-    const completeSignupBtn = document.getElementById('complete-signup');
-    if (completeSignupBtn) {
-        completeSignupBtn.addEventListener('click', completeSignup);
-    }
-    
-    // Allow Enter key to submit OTP
-    const emailOtpInput = document.getElementById('email-otp');
-    const phoneOtpInput = document.getElementById('phone-otp');
-    
-    if (emailOtpInput) {
-        emailOtpInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const verifyBtn = document.getElementById('verify-email-otp');
-                if (verifyBtn) verifyBtn.click();
-            }
-        });
-    }
-    
-    if (phoneOtpInput) {
-        phoneOtpInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const verifyBtn = document.getElementById('verify-phone-otp');
-                if (verifyBtn) verifyBtn.click();
-            }
-        });
-    }
-}
-
-async function sendEmailOTP(email, purpose) {
-    const btn = document.getElementById('send-email-otp');
-    if (!btn) return;
-    
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
-    
-    try {
-        const response = await fetch('/api/send-email-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                email, 
-                purpose,
-                signupToken: signupToken  // Include signup token
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showToast('success', 'OTP sent to ' + email);
-            btn.innerHTML = '<i class="fa fa-check"></i> Sent!';
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fa fa-redo"></i> Resend';
-                btn.disabled = false;
-            }, 30000); // 30 seconds cooldown
-        } else {
-            showError(data.error || 'Failed to send OTP');
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    } catch (error) {
-        console.error('Send OTP error:', error);
-        showError('An error occurred');
-        btn.innerHTML = originalText;
+function resetSignupButton(btn) {
+    if (btn) {
         btn.disabled = false;
-    }
-}
-
-async function verifyEmailOTP(email, otp) {
-    if (!otp || otp.length !== 6) {
-        showError('Please enter a valid 6-digit OTP');
-        return;
-    }
-    
-    const btn = document.getElementById('verify-email-otp');
-    if (!btn) return;
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Verifying...';
-    
-    try {
-        const response = await fetch('/api/verify-email-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            emailVerified = true;
-            const emailStatus = document.getElementById('email-status');
-            const emailOtpInput = document.getElementById('email-otp');
-            
-            if (emailStatus) {
-                emailStatus.innerHTML = '<i class="fa fa-check-circle"></i> Verified';
-                emailStatus.classList.add('verified');
-            }
-            if (emailOtpInput) {
-                emailOtpInput.disabled = true;
-            }
-            btn.innerHTML = '<i class="fa fa-check"></i> Verified!';
-            showToast('success', 'Email verified successfully!');
-            checkSignupComplete();
-        } else {
-            showError(data.error || 'Invalid OTP');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-check"></i> Verify Email';
-        }
-    } catch (error) {
-        console.error('Verify OTP error:', error);
-        showError('An error occurred');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa fa-check"></i> Verify Email';
-    }
-}
-
-async function sendPhoneOTP(phone, purpose) {
-    if (!phone) {
-        showError('Phone number is required');
-        return;
-    }
-    
-    const btn = document.getElementById('send-phone-otp');
-    if (!btn) return;
-    
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
-    
-    try {
-        const response = await fetch('/api/send-phone-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                phone, 
-                purpose,
-                signupToken: signupToken  // Include signup token
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showToast('success', 'OTP sent to ' + phone);
-            btn.innerHTML = '<i class="fa fa-check"></i> Sent!';
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fa fa-redo"></i> Resend';
-                btn.disabled = false;
-            }, 30000);
-        } else {
-            showError(data.error || 'Failed to send OTP');
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    } catch (error) {
-        console.error('Send OTP error:', error);
-        showError('An error occurred');
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
-async function verifyPhoneOTP(phone, otp) {
-    if (!otp || otp.length !== 6) {
-        showError('Please enter a valid 6-digit OTP');
-        return;
-    }
-    
-    const btn = document.getElementById('verify-phone-otp');
-    if (!btn) return;
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Verifying...';
-    
-    try {
-        const response = await fetch('/api/verify-phone-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, otp })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            phoneVerified = true;
-            const phoneStatus = document.getElementById('phone-status');
-            const phoneOtpInput = document.getElementById('phone-otp');
-            
-            if (phoneStatus) {
-                phoneStatus.innerHTML = '<i class="fa fa-check-circle"></i> Verified';
-                phoneStatus.classList.add('verified');
-            }
-            if (phoneOtpInput) {
-                phoneOtpInput.disabled = true;
-            }
-            btn.innerHTML = '<i class="fa fa-check"></i> Verified!';
-            showToast('success', 'Phone verified successfully!');
-            checkSignupComplete();
-        } else {
-            showError(data.error || 'Invalid OTP');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-check"></i> Verify Phone';
-        }
-    } catch (error) {
-        console.error('Verify OTP error:', error);
-        showError('An error occurred');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa fa-check"></i> Verify Phone';
-    }
-}
-
-function checkSignupComplete() {
-    const completeBtn = document.getElementById('complete-signup');
-    const email = document.getElementById('email')?.value;
-    const phone = document.getElementById('phone')?.value;
-    
-    // Check if all provided methods are verified
-    let canComplete = emailVerified;
-    if (phone) {
-        canComplete = canComplete && phoneVerified;
-    }
-    
-    if (completeBtn) {
-        completeBtn.disabled = !canComplete;
-        if (canComplete) {
-            completeBtn.classList.add('active');
-            updateProgress(3);
-        } else {
-            completeBtn.classList.remove('active');
-        }
-    }
-}
-
-async function completeSignup() {
-    if (!signupToken) {
-        showError('Signup session expired. Please start over.');
-        return;
-    }
-    
-    const btn = document.getElementById('complete-signup');
-    if (!btn) return;
-    
-    const emailOtp = document.getElementById('email-otp')?.value || '';
-    const phoneOtp = document.getElementById('phone-otp')?.value || '';
-    const phone = document.getElementById('phone')?.value;
-    
-    // Require email OTP at minimum
-    if (!emailOtp) {
-        showError('Please enter the OTP sent to your email');
-        return;
-    }
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating Account...';
-    
-    try {
-        const response = await fetch('/api/signup-complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                signupToken: signupToken,
-                emailOTP: emailOtp,
-                phoneOTP: phoneOtp,
-                emailVerified: emailVerified,
-                phoneVerified: phoneVerified
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showToast('success', 'Account created successfully! Verify email and login.');
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 2000);
-        } else {
-            showError(data.error || 'Failed to create account');
-            btn.disabled = false;
-            btn.innerHTML = '<span>Complete Registration</span><i class="fa fa-check"></i>';
-        }
-    } catch (error) {
-        console.error('Complete signup error:', error);
-        showError('An error occurred');
-        btn.disabled = false;
-        btn.innerHTML = '<span>Complete Registration</span><i class="fa fa-check"></i>';
-    }
-}
-
-function updateProgress(step) {
-    for (let i = 1; i <= 3; i++) {
-        const stepEl = document.getElementById('step-' + i);
-        if (stepEl) {
-            const stepNumber = stepEl.querySelector('.step-number');
-            if (i <= step) {
-                stepEl.classList.add('active', 'completed');
-                if (i < step && stepNumber) {
-                    stepNumber.innerHTML = '<i class="fa fa-check"></i>';
-                }
-            } else {
-                stepEl.classList.remove('active', 'completed');
-                if (stepNumber) {
-                    stepNumber.textContent = i;
-                }
-            }
-        }
+        btn.innerHTML = '<span>Create Account</span><i class="fa fa-user-plus"></i>';
     }
 }
 
@@ -518,252 +82,169 @@ function updateProgress(step) {
 async function handleLogin(e) {
     e.preventDefault();
     
-    // Get email and password
     const emailInput = document.getElementById('login-email') || document.getElementById('email');
-    const email = emailInput?.value;
     const passwordInput = document.getElementById('login-password') || document.getElementById('password');
-    const password = passwordInput?.value;
-    const errorMessage = document.getElementById('error-message');
-    const submitBtn = document.getElementById('login-btn');
     
-    // Validate required fields
+    const email = emailInput?.value;
+    const password = passwordInput?.value;
+    const submitBtn = document.getElementById('login-btn');
+
     if (!email || !password) {
         showError('Please enter email and password');
         return;
     }
-    
-    // Show loading state
+
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Signing In...';
     }
-    if (errorMessage) {
-        errorMessage.style.display = 'none';
-    }
-    
+
     try {
         const response = await fetch('/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
-            // Success - redirect to dashboard
-            showToast('success', 'Login successful! Redirecting...');
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 1500);
+            showToast('success', 'Login successful!');
+            setTimeout(() => window.location.href = '/dashboard', 1200);
         } else {
-            showError(data.error || 'Invalid credentials. Please try again.', errorMessage?.id || 'error-message');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Sign In</span><i class="fa fa-arrow-right"></i>';
-            }
+            showError(data.error || 'Invalid credentials');
+            resetLoginButton(submitBtn);
         }
+
     } catch (error) {
         console.error('Login error:', error);
-        showError('An error occurred. Please try again.', errorMessage?.id || 'error-message');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Sign In</span><i class="fa fa-arrow-right"></i>';
-        }
+        showError('An error occurred');
+        resetLoginButton(submitBtn);
     }
 }
 
-// ==================== FORGOT PASSWORD FUNCTIONS ====================
+function resetLoginButton(btn) {
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Sign In</span><i class="fa fa-arrow-right"></i>';
+    }
+}
+
+// ==================== FORGOT PASSWORD ====================
 
 async function handleForgotPassword(e) {
     e.preventDefault();
     
-    const emailInput = document.getElementById('forgot-email') || document.getElementById('email');
-    const email = emailInput?.value;
-    const errorMessage = document.getElementById('error-message');
-    const successMessage = document.getElementById('success-message');
+    const email = document.getElementById('forgot-email')?.value || document.getElementById('email')?.value;
     const submitBtn = e.target?.querySelector('button[type="submit"]');
-    
+
     if (!email) {
         showError('Please enter your email address');
         return;
     }
-    
-    // Show loading state
+
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
     }
-    if (errorMessage) {
-        errorMessage.style.display = 'none';
-    }
-    if (successMessage) {
-        successMessage.style.display = 'none';
-    }
-    
+
     try {
         const response = await fetch('/api/forgot-password', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
-            if (successMessage) {
-                successMessage.innerHTML = '<i class="fa fa-check-circle"></i><span>' + data.message + '</span>';
-                successMessage.style.display = 'flex';
-            }
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fa fa-check"></i> Sent!';
-            }
+            showToast('success', data.message || 'Reset link sent');
         } else {
-            showError(data.error || 'Failed to send reset link', errorMessage?.id || 'error-message');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Send Reset Link</span><i class="fa fa-paper-plane"></i>';
-            }
+            showError(data.error || 'Failed to send reset link');
         }
+
     } catch (error) {
         console.error('Forgot password error:', error);
-        showError('An error occurred. Please try again.', errorMessage?.id || 'error-message');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Send Reset Link</span><i class="fa fa-paper-plane"></i>';
-        }
+        showError('An error occurred');
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
     }
 }
+
+// ==================== RESET PASSWORD ====================
 
 async function handleResetPassword(e) {
     e.preventDefault();
     
-    const passwordInput = document.getElementById('reset-password');
-    const confirmPasswordInput = document.getElementById('reset-confirm-password');
-    const password = passwordInput?.value;
-    const confirmPassword = confirmPasswordInput?.value;
-    const errorMessage = document.getElementById('error-message');
-    const successMessage = document.getElementById('success-message');
+    const password = document.getElementById('reset-password')?.value;
+    const confirmPassword = document.getElementById('reset-confirm-password')?.value;
     const submitBtn = e.target?.querySelector('button[type="submit"]');
-    
-    // Validate passwords
+
     if (!password || !confirmPassword) {
         showError('Please enter both passwords');
         return;
     }
-    
+
     if (password !== confirmPassword) {
         showError('Passwords do not match');
         return;
     }
-    
-    if (password.length < 6) {
-        showError('Password must be at least 6 characters');
+
+    const token = new URLSearchParams(window.location.search).get('token');
+
+    if (!token) {
+        showError('Invalid reset link');
         return;
     }
-    
-    // Show loading state
+
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Resetting...';
     }
-    if (errorMessage) {
-        errorMessage.style.display = 'none';
-    }
-    if (successMessage) {
-        successMessage.style.display = 'none';
-    }
-    
-    // Get reset token from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    
-    if (!token) {
-        showError('Invalid reset link. Please request a new password reset.', errorMessage?.id || 'error-message');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Reset Password</span><i class="fa fa-lock"></i>';
-        }
-        return;
-    }
-    
+
     try {
         const response = await fetch('/api/reset-password', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, password })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
-            if (successMessage) {
-                successMessage.innerHTML = '<i class="fa fa-check-circle"></i><span>' + data.message + '</span>';
-                successMessage.style.display = 'flex';
-            }
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fa fa-check"></i> Reset!';
-            }
-            // Redirect to login after 2 seconds
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 2000);
+            showToast('success', 'Password reset successfully');
+            setTimeout(() => window.location.href = '/login', 1500);
         } else {
-            showError(data.error || 'Failed to reset password', errorMessage?.id || 'error-message');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Reset Password</span><i class="fa fa-lock"></i>';
-            }
+            showError(data.error || 'Reset failed');
         }
+
     } catch (error) {
         console.error('Reset password error:', error);
-        showError('An error occurred. Please try again.', errorMessage?.id || 'error-message');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Reset Password</span><i class="fa fa-lock"></i>';
-        }
+        showError('An error occurred');
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
-// ==================== UTILITY FUNCTIONS ====================
+// ==================== UTILITIES ====================
 
 function showError(message, elementId = 'error-message') {
-    const errorMessage = document.getElementById(elementId);
-    if (errorMessage) {
-        errorMessage.innerHTML = '<i class="fa fa-exclamation-circle"></i><span>' + message + '</span>';
-        errorMessage.style.display = 'flex';
-    } else {
-        console.error('Error message element not found:', elementId);
-    }
-}
-
-function hideError(elementId = 'error-message') {
-    const errorMessage = document.getElementById(elementId);
-    if (errorMessage) {
-        errorMessage.style.display = 'none';
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.innerHTML = '<i class="fa fa-exclamation-circle"></i><span>' + message + '</span>';
+        el.style.display = 'flex';
     }
 }
 
 function showToast(type, message) {
-    // Handle backward compatibility: if only one argument is passed, treat it as message with type 'success'
-    if (typeof type === 'string' && typeof message === 'undefined') {
+    if (typeof message === 'undefined') {
         message = type;
         type = 'success';
     }
-    
-    // Remove any existing toast
-    const existingToast = document.querySelector('.toast-notification');
-    if (existingToast) {
-        existingToast.remove();
-    }
-    
-    // Create toast element
+
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+
     const toast = document.createElement('div');
     toast.className = 'toast-notification';
     toast.innerHTML = `
@@ -775,77 +256,25 @@ function showToast(type, message) {
             <span>${message}</span>
         </div>
     `;
-    
-    // Add styles if not exists
+
     if (!document.getElementById('toast-styles')) {
-        const styles = document.createElement('style');
-        styles.id = 'toast-styles';
-        styles.textContent = `
-            .toast-notification {
-                position: fixed;
-                top: 24px;
-                right: 24px;
-                background: #1d1d1f;
-                color: white;
-                padding: 16px 24px;
-                border-radius: 14px;
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-                transform: translateX(120%);
-                transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                z-index: 1000;
-            }
-            .toast-notification.active {
-                transform: translateX(0);
-            }
-            .toast-icon {
-                width: 44px;
-                height: 44px;
-                border-radius: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 20px;
-            }
-            .toast-icon.success {
-                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            }
-            .toast-icon.error {
-                background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
-            }
-            .toast-icon.info {
-                background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
-            }
-            .toast-content {
-                display: flex;
-                flex-direction: column;
-            }
-            .toast-content strong {
-                margin-bottom: 2px;
-            }
-            .toast-content span {
-                font-size: 0.9rem;
-                opacity: 0.9;
-            }
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            .toast-notification{position:fixed;top:24px;right:24px;background:#1d1d1f;color:#fff;padding:16px 24px;border-radius:14px;display:flex;gap:16px;z-index:9999;transform:translateX(120%);transition:.4s}
+            .toast-notification.active{transform:translateX(0)}
+            .toast-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+            .toast-icon.success{background:#38ef7d}
+            .toast-icon.error{background:#ef473a}
         `;
-        document.head.appendChild(styles);
+        document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(toast);
-    
-    // Show toast
-    setTimeout(() => {
-        toast.classList.add('active');
-    }, 10);
-    
-    // Hide toast after 4 seconds
+
+    setTimeout(() => toast.classList.add('active'), 10);
     setTimeout(() => {
         toast.classList.remove('active');
-        setTimeout(() => {
-            toast.remove();
-        }, 400);
-    }, 4000);
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
 }
-
