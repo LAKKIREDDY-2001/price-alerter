@@ -16,6 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
 
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
