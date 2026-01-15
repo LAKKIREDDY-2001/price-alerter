@@ -1,0 +1,30 @@
+# robots.txt for AI Price Alert - www.pricealerter.in
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private pages
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /logout
+Disallow: /reset-password
+
+# Sitemap
+Sitemap: https://pricealerter.in/sitemap.xml
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+
+# AdsBot-Google (for AdSense)
+User-agent: AdsBot-Google
+Allow: /
+
+# Mediapartners-Google (AdSense)
+User-agent: Mediapartners-Google
+Allow: /
+
