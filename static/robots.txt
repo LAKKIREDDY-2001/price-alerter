@@ -1,0 +1,112 @@
+# robots.txt for AI Price Alert - www.pricealerter.in
+# Last Updated: 2026-01-14
+# Purpose: Guide search engine crawlers through the site
+
+# Default crawl delay for all bots (respectful crawling)
+Crawl-delay: 10
+
+# Host directive (preferred host forwww vs non-www)
+Host: https://pricealerter.in
+
+# User-agent: * (applies to all crawlers)
+User-agent: *
+Allow: /
+
+# Disallow admin and private pages
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /logout
+Disallow: /reset-password
+Disallow: /health
+Disallow: /google*.html
+
+# Sitemap location
+Sitemap: https://pricealerter.in/sitemap.xml
+Sitemap: https://pricealerter.in/static/sitemap.xml
+
+# Specific crawler rules
+
+# Googlebot - higher priority, faster crawl
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 2
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /logout
+Disallow: /reset-password
+Disallow: /google*.html
+
+# Googlebot-Image
+User-agent: Googlebot-Image
+Allow: /static/
+Crawl-delay: 5
+
+# Googleother (for alternate Google crawlers)
+User-agent: Googleother
+Allow: /
+Crawl-delay: 2
+
+# AdsBot-Google (for AdSense verification)
+User-agent: AdsBot-Google
+Allow: /
+Crawl-delay: 1
+
+# Mediapartners-Google (AdSense)
+User-agent: Mediapartners-Google
+Allow: /
+Crawl-delay: 1
+
+# AdsBot-Google-Mobile (mobile ads)
+User-agent: AdsBot-Google-Mobile
+Allow: /
+Crawl-delay: 1
+
+# Facebook External Hit
+User-agent: Facebookexternalhit
+Allow: /
+
+# Twitterbot
+User-agent: Twitterbot
+Allow: /
+
+# LinkedInBot
+User-agent: LinkedInBot
+Allow: /
+
+# Pinterest
+User-agent: Pinterest
+Allow: /
+
+# Slackbot
+User-agent: Slackbot
+Allow: /
+
+# Discordbot
+User-agent: Discordbot
+Allow: /
+
+# Applebot
+User-agent: Applebot
+Allow: /
+Crawl-delay: 5
+
+# DuckDuckBot
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 5
+
+# Yandex
+User-agent: Yandex
+Allow: /
+Crawl-delay: 5
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /logout
+
+# Baiduspider
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 10
+Disallow: /dashboard
+Disallow: /api/
+
