@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Price Alert - Price History</title>
+    <meta name="theme-color" content="#FF9F0A">
+    <meta name="msapplication-TileColor" content="#FF9F0A">
+    <!-- PNG Favicons for better browser compatibility -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png">
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="mask-icon" href="/static/logo.svg" color="#FF9F0A">
+    <meta name="msapplication-TileImage" content="/static/icon-144.png">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .ph-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .ph-header {
+            padding: 24px 24px 16px;
+            background: white;
+        }
+
+        .ph-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #1d1d1f;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .ph-back-btn:hover {
+            opacity: 0.7;
+        }
+
+        .ph-product-card {
+            background: #f5f5f7;
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ph-product-image {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #ff9f0a 0%, #ff7b00 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+        }
+
+        .ph-product-info {
+            flex: 1;
+        }
+
+        .ph-product-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .ph-product-url {
+            font-size: 13px;
+            color: #86868b;
+        }
+
+        .ph-current-section {
+            padding: 24px;
+            background: white;
+        }
+
+        .ph-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .ph-price-main {
+            font-size: 42px;
+            font-weight: 700;
+            color: #1d1d1f;
+            line-height: 1;
+        }
+
+        .ph-price-currency {
+            font-size: 24px;
+            font-weight: 500;
+            vertical-align: top;
+            margin-right: 4px;
+        }
+
+        .ph-savings-badge {
+            background: linear-gradient(135deg, #27c93f 0%, #38ef7d 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ph-graph-section {
+            padding: 0 24px 24px;
+            background: white;
+        }
+
+        .ph-graph-container {
+            background: #f5f5f7;
+            border-radius: 24px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .ph-graph-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .ph-graph-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .ph-time-filters {
+            background: #e8e8ed;
+            border-radius: 16px;
+            padding: 4px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .ph-time-btn {
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #86868b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ph-time-btn.active {
+            background: white;
+            color: #1d1d1f;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .ph-time-btn:hover:not(.active) {
+            color: #1d1d1f;
+        }
+
+        .ph-chart-wrapper {
+            height: 220px;
+            position: relative;
+        }
+
+        .ph-target-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            border-top: 2px dashed #27c93f;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            pointer-events: none;
+        }
+
+        .ph-target-label {
+            background: #27c93f;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: -10px;
+        }
+
+        .ph-target-input-section {
+            padding: 0 24px 24px;
+            background: white;
+        }
+
+        .ph-target-input-card {
+            background: #f5f5f7;
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ph-target-input-group {
+            flex: 1;
+        }
+
+        .ph-target-label-text {
+            font-size: 13px;
+            color: #86868b;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .ph-target-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8ed;
+            border-radius: 16px;
+            font-size: 20px;
+            font-weight: 600;
+            background: white;
+            color: #1d1d1f;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .ph-target-input:focus {
+            border-color: #ff9f0a;
+        }
+
+        .ph-alert-btn {
+            background: linear-gradient(135deg, #ff9f0a 0%, #ff7b00 100%);
+            color: white;
+            border: none;
+            padding: 18px 28px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .ph-alert-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(255, 159, 10, 0.4);
+        }
+
+        .ph-alert-btn i {
+            font-size: 18px;
+        }
+
+        .ph-stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 0 24px 24px;
+        }
+
+        .ph-stat-card {
+            background: #f5f5f7;
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .ph-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+        }
+
+        .ph-stat-label {
+            font-size: 12px;
+            color: #86868b;
+        }
+
+        /* Responsive */
+        @media (max-width: 520px) {
+            .ph-container {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .ph-price-main {
+                font-size: 36px;
+            }
+            
+            .ph-alert-btn {
+                padding: 16px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ph-container">
+        <!-- Header -->
+        <div class="ph-header">
+            <button class="ph-back-btn" onclick="goBack()">
+                <i class="fa fa-chevron-left"></i>
+                Back
+            </button>
+            
+            <div class="ph-product-card">
+                <div class="ph-product-image">
+                    <i class="fa fa-shopping-bag"></i>
+                </div>
+                <div class="ph-product-info">
+                    <div class="ph-product-name" id="product-name">Loading...</div>
+                    <div class="ph-product-url" id="product-url">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Price Section -->
+        <div class="ph-current-section">
+            <div class="ph-price-row">
+                <div class="ph-price-main">
+                    <span class="ph-price-currency" id="price-currency">$</span>
+                    <span id="current-price">0.00</span>
+                </div>
+                <div class="ph-savings-badge">
+                    <i class="fa fa-arrow-down"></i>
+                    <span id="savings-percent">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graph Section -->
+        <div class="ph-graph-section">
+            <div class="ph-graph-container">
+                <div class="ph-graph-header">
+                    <div class="ph-graph-title">Price History</div>
+                    <div class="ph-time-filters">
+                        <button class="ph-time-btn" data-period="1w">1w</button>
+                        <button class="ph-time-btn" data-period="1m">1m</button>
+                        <button class="ph-time-btn active" data-period="3m">3m</button>
+                        <button class="ph-time-btn" data-period="6m">6m</button>
+                        <button class="ph-time-btn" data-period="1y">1y</button>
+                        <button class="ph-time-btn" data-period="all">All</button>
+                    </div>
+                </div>
+                
+                <div class="ph-chart-wrapper">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="ph-stats-row">
+            <div class="ph-stat-card">
+                <div class="ph-stat-value" id="stat-high">--</div>
+                <div class="ph-stat-label">Highest</div>
+            </div>
+            <div class="ph-stat-card">
+                <div class="ph-stat-value" id="stat-low">--</div>
+                <div class="ph-stat-label">Lowest</div>
+            </div>
+            <div class="ph-stat-card">
+                <div class="ph-stat-value" id="stat-avg">--</div>
+                <div class="ph-stat-label">Average</div>
+            </div>
+        </div>
+
+        <!-- Target Input Section -->
+        <div class="ph-target-input-section">
+            <div class="ph-target-input-card">
+                <div class="ph-target-input-group">
+                    <label class="ph-target-label-text">Set your target price</label>
+                    <input type="number" class="ph-target-input" id="target-price-input" placeholder="0.00">
+                </div>
+                <button class="ph-alert-btn" onclick="setAlertAndTrack()">
+                    <i class="fa fa-bell"></i>
+                    Set Alert & Track
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instance
+        let priceChart = null;
+        let currentTracker = null;
+        let priceData = {
+            prices: [],
+            dates: [],
+            targetPrice: null,
+            currentPrice: 0,
+            originalPrice: 0,
+            currency: '$'
+        };
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get tracker data from localStorage (passed via URL param or storage)
+            const urlParams = new URLSearchParams(window.location.search);
+            const trackerId = urlParams.get('id');
+            
+            if (trackerId) {
+                loadTrackerData(trackerId);
+            } else {
+                // Demo mode - generate sample data
+                loadDemoData();
+            }
+
+            // Setup time filter buttons
+            setupTimeFilters();
+        });
+
+        function loadTrackerData(trackerId) {
+            const trackers = JSON.parse(localStorage.getItem('trackers') || '[]');
+            const tracker = trackers.find(t => t.id == trackerId);
+            
+            if (tracker) {
+                currentTracker = tracker;
+                
+                // Update UI
+                document.getElementById('product-name').textContent = tracker.productName || 'Product';
+                document.getElementById('product-url').textContent = new URL(tracker.url).hostname;
+                document.getElementById('price-currency').textContent = tracker.currencySymbol || '$';
+                document.getElementById('current-price').textContent = tracker.currentPrice.toFixed(2);
+                document.getElementById('target-price-input').value = tracker.targetPrice;
+
+                // Calculate savings
+                const savings = ((tracker.currentPrice - tracker.targetPrice) / tracker.currentPrice * 100).toFixed(0);
+                document.getElementById('savings-percent').textContent = Math.abs(savings) + '%';
+                document.getElementById('savings-percent').parentElement.style.background = 
+                    tracker.currentPrice <= tracker.targetPrice 
+                        ? 'linear-gradient(135deg, #27c93f 0%, #38ef7d 100%)'
+                        : 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
+
+                // Generate price history
+                generatePriceHistory(tracker);
+            } else {
+                loadDemoData();
+            }
+        }
+
+        function loadDemoData() {
+            // Demo data
+            document.getElementById('product-name').textContent = 'Premium Wireless Headphones';
+            document.getElementById('product-url').textContent = 'amazon.com';
+            document.getElementById('price-currency').textContent = '£';
+            document.getElementById('current-price').textContent = '150.00';
+            document.getElementById('target-price-input').value = '120.00';
+            
+            priceData = {
+                currentPrice: 150,
+                originalPrice: 250,
+                targetPrice: 120,
+                currency: '£'
+            };
+
+            // Calculate savings
+            const savings = ((250 - 150) / 250 * 100).toFixed(0);
+            document.getElementById('savings-percent').textContent = savings + '%';
+
+            // Generate demo price history
+            generateDemoHistory();
+        }
+
+        function generatePriceHistory(tracker) {
+            // Generate sample historical data based on current price
+            const history = [];
+            const dates = [];
+            const basePrice = tracker.currentPrice;
+            
+            for (let i = 30; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                // Simulate price variation
+                const variation = (Math.random() - 0.5) * basePrice * 0.3;
+                history.push(basePrice + variation);
+            }
+
+            // Ensure last point is current price
+            history[history.length - 1] = basePrice;
+
+            priceData.prices = history;
+            priceData.dates = dates;
+            priceData.targetPrice = tracker.targetPrice;
+            priceData.currentPrice = tracker.currentPrice;
+            priceData.originalPrice = history[0];
+            priceData.currency = tracker.currencySymbol || '$';
+
+            updateStats();
+            renderChart();
+        }
+
+        function generateDemoHistory() {
+            const history = [];
+            const dates = [];
+            
+            for (let i = 30; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                const variation = (Math.random() - 0.5) * 50;
+                history.push(200 + variation);
+            }
+
+            // End at current price
+            history[history.length - 1] = 150;
+
+            priceData.prices = history;
+            priceData.dates = dates;
+
+            updateStats();
+            renderChart();
+        }
+
+        function updateStats() {
+            const prices = priceData.prices;
+            if (prices.length === 0) return;
+
+            const maxPrice = Math.max(...prices);
+            const minPrice = Math.min(...prices);
+            const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+            document.getElementById('stat-high').textContent = priceData.currency + maxPrice.toFixed(0);
+            document.getElementById('stat-low').textContent = priceData.currency + minPrice.toFixed(0);
+            document.getElementById('stat-avg').textContent = priceData.currency + avgPrice.toFixed(0);
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            // Destroy existing chart
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            gradient.addColorStop(0, 'rgba(249, 115, 22, 0.3)');
+            gradient.addColorStop(1, 'rgba(249, 115, 22, 0)');
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: priceData.dates,
+                    datasets: [{
+                        label: 'Price',
+                        data: priceData.prices,
+                        borderColor: '#f97316',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#f97316',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(29, 29, 31, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 12,
+                            cornerRadius: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return priceData.currency + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'targetLine',
+                    afterDraw: (chart) => {
+                        if (!priceData.targetPrice) return;
+
+                        const ctx = chart.ctx;
+                        const yAxis = chart.scales.y;
+                        const xAxis = chart.scales.x;
+                        
+                        const y = yAxis.getPixelForValue(priceData.targetPrice);
+                        
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([6, 6]);
+                        ctx.strokeStyle = '#27c93f';
+                        ctx.lineWidth = 2;
+                        ctx.moveTo(xAxis.left, y);
+                        ctx.lineTo(xAxis.right, y);
+                        ctx.stroke();
+
+                        // Target label
+                        ctx.fillStyle = '#27c93f';
+                        ctx.fillRect(xAxis.right - 60, y - 12, 60, 24);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Target', xAxis.right - 30, y + 4);
+                        
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        function setupTimeFilters() {
+            const buttons = document.querySelectorAll('.ph-time-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    // Filter data based on period
+                    filterDataByPeriod(btn.dataset.period);
+                });
+            });
+        }
+
+        function filterDataByPeriod(period) {
+            const periodDays = {
+                '1w': 7,
+                '1m': 30,
+                '3m': 90,
+                '6m': 180,
+                '1y': 365,
+                'all': Infinity
+            };
+
+            const days = periodDays[period] || 30;
+            const filteredPrices = priceData.prices.slice(-days);
+            const filteredDates = priceData.dates.slice(-days);
+
+            priceChart.data.labels = filteredDates;
+            priceChart.data.datasets[0].data = filteredPrices;
+            priceChart.update();
+        }
+
+        function setAlertAndTrack() {
+            const targetPrice = document.getElementById('target-price-input').value;
+            if (!targetPrice || targetPrice <= 0) {
+                alert('Please enter a valid target price');
+                return;
+            }
+
+            if (currentTracker) {
+                currentTracker.targetPrice = parseFloat(targetPrice);
+                localStorage.setItem('trackers', JSON.stringify([currentTracker]));
+                alert('Target price updated! You will be notified when the price drops to ' + priceData.currency + targetPrice);
+            } else {
+                alert('Alert set! You will be notified when the price drops to ' + priceData.currency + targetPrice);
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+</body>
+</html>
+
