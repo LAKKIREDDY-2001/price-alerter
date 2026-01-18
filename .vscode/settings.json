@@ -1,0 +1,11 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python3",
+    "python.analysis.extraPaths": ["${workspaceFolder}"],
+    "python.autoComplete.extraPaths": ["${workspaceFolder}"],
+    "python.envFile": "${workspaceFolder}/.env",
+    // LiteLLM configuration removed - was causing OpenRouter/Minimax errors
+    // If you need AI features, configure them separately in your AI extension settings
+    "mcpServers": {},
+    "blackboxai.enabled": false
+}
+

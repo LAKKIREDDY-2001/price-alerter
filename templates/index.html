@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Price Alert - Dashboard</title>
+    <meta name="description" content="AI Price Alert - Smart price tracking assistant. Get instant notifications when prices drop on Amazon, Flipkart, Myntra & more.">
+    <link rel="canonical" href="https://pricealerter.in/">
+    <meta name="theme-color" content="#FF9F0A">
+    <meta name="msapplication-TileColor" content="#FF9F0A">
+    
+    <!-- Favicon and Logo for Google Search Results -->
+    <!-- PNG Favicons for better browser compatibility -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png">
+    <!-- SVG favicon as fallback -->
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="mask-icon" href="/static/logo.svg" color="#FF9F0A">
+    <!-- Microsoft Tile Icon -->
+    <meta name="msapplication-TileImage" content="/static/icon-144.png">
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pricealerter.in/">
+    <meta property="og:title" content="AI Price Alert - Smart Price Tracking">
+    <meta property="og:description" content="Track prices across Amazon, Flipkart, Myntra & 30+ sites. Get instant alerts when prices drop!">
+    <meta property="og:image" content="/static/logo.svg">
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI Price Alert - Smart Price Tracking">
+    <meta name="twitter:description" content="Track prices across Amazon, Flipkart, Myntra & 30+ sites. Get instant alerts when prices drop!">
+    <meta name="twitter:image" content="/static/logo.svg">
+    
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1181608933401999"
+     crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    
+    <div class="browser-window">
+        <div class="browser-header">
+            <div class="window-dots">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="nav-arrows">
+                <i class="fa fa-chevron-left" style="color: #999;"></i>
+                <i class="fa fa-chevron-right" style="color: #999; margin-left: 10px;"></i>
+            </div>
+            <div class="address-bar">
+                <i class="fa fa-lock" style="margin-right: 8px; font-size: 10px;"></i>
+                app.aipricealert.com/dashboard
+            </div>
+            <div class="user-menu">
+                <span id="user-greeting">Welcome, User</span>
+                <a href="/logout" class="logout-btn"><i class="fa fa-sign-out"></i></a>
+            </div>
+        </div>
+
+        <div class="viewport">
+            <div class="app-sidebar">
+                <h3 style="margin-bottom: 30px;">🔔 AI Tracker</h3>
+                <div class="nav-item active" data-view="new-alert"><i class="fa fa-plus-circle"></i> New Alert</div>
+                <div class="nav-item" data-view="my-trackers"><i class="fa fa-list"></i> My Trackers</div>
+                <div class="nav-item" data-view="live-prices"><i class="fa fa-line-chart"></i> Live Prices</div>
+                <div class="nav-item" data-view="price-trends"><i class="fa fa-bar-chart"></i> Price Trends</div>
+                <div class="nav-item" data-view="settings"><i class="fa fa-gear"></i> Settings</div>
+                
+                <!-- Auto Refresh Status -->
+                <div class="auto-refresh-status" id="auto-refresh-status" style="display: flex; align-items: center; gap: 8px; padding: 10px; background: #f5f5f7; border-radius: 12px; margin-top: 20px; font-size: 12px;">
+                    <div style="width: 8px; height: 8px; background: #27c93f; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                    <span id="auto-refresh-text">Auto-refresh: 15min</span>
+                </div>
+                
+                <div class="live-status" id="live-status" style="display: none;">
+                    <span class="live-dot"></span>
+                    <span>Live Updating</span>
+                </div>
+                
+                <div class="sidebar-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="sidebar-active-trackers">0</span>
+                        <span class="stat-label">Active</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="sidebar-deals">0</span>
+                        <span class="stat-label">Deals</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-main">
+                <!-- New Alert View -->
+                <div id="view-new-alert" class="view active">
+                    <div class="input-container">
+                        <h1 style="font-size: 2.5rem; margin-bottom: 10px;">Paste Link. Save Money.</h1>
+                        <p style="color: #666; margin-bottom: 40px;">The AI tracks the price 24/7 and sends you a notification the second it drops.</p>
+                        
+                        <input type="text" id="urlInput" class="product-input" placeholder="Paste Amazon, Flipkart, Myntra, Ajio, Meesho, Snapdeal, Tata CLiQ, or Reliance Digital link here...">
+                        
+                        <div id="priceStep" style="display: none;">
+                            <p><strong>Set Target Price:</strong></p>
+                            <input type="number" id="targetPrice" class="product-input" style="width: 150px;" placeholder="$0.00">
+                        </div>
+
+                        <button id="mainBtn" class="action-btn" onclick="handleFlow()">Start AI Tracking</button>
+                        
+                        <!-- AdSense Banner Ad -->
+                        <div id="ad-banner-top" class="ad-container">
+                            <div class="ad-label">Advertisement</div>
+                            <ins class="adsbygoogle"
+                                 style="display:block"
+                                 data-ad-client="ca-pub-1181608933401999"
+                                 data-ad-slot="2293293293/banner_top"
+                                 data-ad-format="auto"
+                                 data-full-width-responsive="true"></ins>
+                        </div>
+                        
+                        <div class="supported-sites">
+                            <img src="/static/Logos/amazon.svg" alt="Amazon" class="site-logo">
+                            <img src="/static/Logos/flipkart.svg" alt="Flipkart" class="site-logo">
+                            <img src="/static/Logos/myntra.svg" alt="Myntra" class="site-logo">
+                            <img src="/static/Logos/ajio.svg" alt="Ajio" class="site-logo">
+                            <img src="/static/Logos/meesho.svg" alt="Meesho" class="site-logo">
+                            <img src="/static/Logos/snapdeal.svg" alt="Snapdeal" class="site-logo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Trackers View -->
+                <div id="view-my-trackers" class="view">
+                    <div class="trackers-header">
+                        <h2><i class="fa fa-list"></i> My Trackers</h2>
+                        <div class="trackers-actions">
+                            <div class="search-box">
+                                <i class="fa fa-search"></i>
+                                <input type="text" id="tracker-search" placeholder="Search trackers..." oninput="filterTrackers()">
+                            </div>
+                            <select id="sort-trackers" onchange="sortTrackers()">
+                                <option value="date">Sort by Date</option>
+                                <option value="name">Sort by Name</option>
+                                <option value="price">Sort by Price</option>
+                            </select>
+                            <button class="btn-secondary" id="select-all-btn" onclick="selectAll()" style="padding: 8px 16px;">
+                                <i class="fa fa-check-square-o"></i> Select All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All <span class="count" id="count-all">0</span></button>
+                        <button class="filter-tab" data-filter="active" onclick="setFilter('active')">Active <span class="count" id="count-active">0</span></button>
+                        <button class="filter-tab" data-filter="reached" onclick="setFilter('reached')">Target Reached <span class="count" id="count-reached">0</span></button>
+                    </div>
+                    
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><i class="fa fa-list"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="total-trackers">0</span>
+                                <span class="stat-desc">Total Trackers</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="active-deals">0</span>
+                                <span class="stat-desc">Deals Found</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange"><i class="fa fa-arrow-down"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="avg-savings">0%</span>
+                                <span class="stat-desc">Avg Savings</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="trackers-list" class="trackers-grid">
+                        <div class="empty-state">
+                            <i class="fa fa-rocket"></i>
+                            <h3>No trackers yet!</h3>
+                            <p>Create your first price alert to start saving money</p>
+                            <button class="action-btn" onclick="switchView('new-alert')">Create Tracker</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bulk-actions" id="bulk-actions" style="display: none;">
+                        <span id="selected-count">0 selected</span>
+                        <button class="btn-secondary" onclick="refreshSelected()"><i class="fa fa-refresh"></i> Refresh</button>
+                        <button class="btn-secondary" onclick="exportSelected()"><i class="fa fa-download"></i> Export</button>
+                        <button class="btn-secondary" onclick="shareSelected()"><i class="fa fa-share-alt"></i> Share</button>
+                        <button class="btn-danger" onclick="deleteSelected()"><i class="fa fa-trash"></i> Delete</button>
+                    </div>
+                </div>
+
+                <!-- Live Prices View - Single Product with Live Graph -->
+                <div id="view-live-prices" class="view">
+                    <!-- Product Selector -->
+                    <div class="live-product-selector" id="live-product-selector">
+                        <label>Select Product:</label>
+                        <select id="live-product-select" onchange="selectLiveProduct(this.value)">
+                            <option value="">-- Select a tracker --</option>
+                        </select>
+                    </div>
+
+                    <!-- Single Product Card -->
+                    <div class="live-single-product" id="live-single-product" style="display: none;">
+                        <div class="live-product-header-card">
+                            <div class="live-product-image">
+                                <i class="fa fa-shopping-bag"></i>
+                            </div>
+                            <div class="live-product-details">
+                                <h3 id="live-selected-product-name">Product Name</h3>
+                                <p id="live-selected-product-url">amazon.in</p>
+                            </div>
+                            <div class="live-product-price-section">
+                                <div class="live-current-price-large">
+                                    <span class="currency" id="live-currency">₹</span>
+                                    <span id="live-current-price-display">0.00</span>
+                                </div>
+                                <div class="live-price-change-badge" id="live-price-change">
+                                    <i class="fa fa-minus"></i> No change
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Section -->
+                        <div class="live-target-section">
+                            <div class="live-target-info">
+                                <span class="target-label">Target Price</span>
+                                <span class="target-value" id="live-target-price">₹0.00</span>
+                            </div>
+                            <div class="live-progress-bar">
+                                <div class="live-progress-fill" id="live-progress-fill"></div>
+                            </div>
+                            <div class="live-progress-labels">
+                                <span>Current: <strong id="live-progress-current">₹0</strong></span>
+                                <span>Target: <strong id="live-progress-target">₹0</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Live Graph -->
+                        <div class="live-sensex-graph">
+                            <div class="live-graph-header">
+                                <h3><i class="fa fa-line-chart"></i> Live Price Movement</h3>
+                                <div class="live-graph-controls">
+                                    <button class="live-graph-btn active" onclick="setGraphPeriod('1h')">1H</button>
+                                    <button class="live-graph-btn" onclick="setGraphPeriod('24h')">24H</button>
+                                    <button class="live-graph-btn" onclick="setGraphPeriod('7d')">7D</button>
+                                    <button class="live-graph-btn" onclick="setGraphPeriod('30d')">30D</button>
+                                </div>
+                            </div>
+                            <div class="live-graph-canvas-container">
+                                <canvas id="sensexPriceChart"></canvas>
+                            </div>
+                            <div class="live-graph-stats">
+                                <div class="graph-stat">
+                                    <span class="graph-stat-label">High</span>
+                                    <span class="graph-stat-value" id="graph-high">₹0</span>
+                                </div>
+                                <div class="graph-stat">
+                                    <span class="graph-stat-label">Low</span>
+                                    <span class="graph-stat-value" id="graph-low">₹0</span>
+                                </div>
+                                <div class="graph-stat">
+                                    <span class="graph-stat-label">Change</span>
+                                    <span class="graph-stat-value" id="graph-change">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Actions -->
+                        <div class="live-actions-row">
+                            <button class="live-action-btn primary" onclick="refreshSelectedProduct()">
+                                <i class="fa fa-refresh"></i> Refresh Now
+                            </button>
+                            <button class="live-action-btn" onclick="toggleAutoRefresh()">
+                                <i class="fa fa-clock-o"></i> Auto-refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="live-empty-state" id="live-empty-state">
+                        <i class="fa fa-line-chart"></i>
+                        <h3>Select a Product</h3>
+                        <p>Choose a tracker from the dropdown above to view live price graph</p>
+                    </div>
+                </div>
+
+                <!-- Price Trends View -->
+                <div id="view-price-trends" class="view">
+                    <div class="trends-header">
+                        <h2><i class="fa fa-chart-line"></i> Price Trends</h2>
+                        <div class="time-filter">
+                            <button class="time-btn active" onclick="setTimePeriod('7d')">7 Days</button>
+                            <button class="time-btn" onclick="setTimePeriod('30d')">30 Days</button>
+                            <button class="time-btn" onclick="setTimePeriod('90d')">90 Days</button>
+                        </div>
+                    </div>
+                    
+                    <div class="product-preview" id="product-preview">
+                        <div class="product-image">
+                            <i class="fa fa-shopping-bag"></i>
+                        </div>
+                        <div class="product-details">
+                            <h3>Select a tracker to view trends</h3>
+                            <p>Click the chart icon on any tracker to see price history</p>
+                        </div>
+                    </div>
+                    
+                    <div class="trends-chart-container">
+                        <div class="price-comparison">
+                            <div class="price-box original">
+                                <span class="price-label">Original Price</span>
+                                <span class="price-value" id="original-price">--</span>
+                            </div>
+                            <div class="price-arrow">
+                                <i class="fa fa-arrow-right"></i>
+                            </div>
+                            <div class="price-box current">
+                                <span class="price-label">Current Price</span>
+                                <span class="price-value" id="current-price">--</span>
+                            </div>
+                            <div class="price-box savings">
+                                <span class="price-label">You Save</span>
+                                <span class="price-value" id="savings-amount">--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-main">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                        
+                        <div class="price-prediction">
+                            <div class="prediction-card" id="prediction-card">
+                                <i class="fa fa-bolt"></i>
+                                <div class="prediction-text">
+                                    <strong>Price Prediction</strong>
+                                    <p id="prediction-text">Select a tracker to see prediction</p>
+                                </div>
+                                <div class="confidence" id="confidence">--%</div>
+                            </div>
+                        </div>
+                        
+                        <button class="buy-now-btn" id="buy-now-btn" style="display: none;">
+                            <i class="fa fa-shopping-cart"></i> Buy Now at Current Price
+                        </button>
+                    </div>
+                    
+                    <div class="alerts-history">
+                        <h3><i class="fa fa-bell"></i> All Price Alerts Graph</h3>
+                        <p class="alerts-description">Visual representation of all price drop alerts sent to customers across all tracked products</p>
+                        <div class="alerts-chart-container">
+                            <div class="alerts-chart-placeholder">
+                                <div class="alerts-chart-bars" id="alerts-chart-bars"></div>
+                                <div class="chart-labels" id="alerts-chart-labels"></div>
+                            </div>
+                        </div>
+                        <div class="alerts-summary">
+                            <div class="alert-stat">
+                                <span class="alert-count" id="total-alerts">0</span>
+                                <span class="alert-label">Total Alerts Sent</span>
+                            </div>
+                            <div class="alert-stat">
+                                <span class="alert-count" id="alerts-this-week">0</span>
+                                <span class="alert-label">This Week</span>
+                            </div>
+                            <div class="alert-stat">
+                                <span class="alert-count" id="alerts-this-month">0</span>
+                                <span class="alert-label">This Month</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="trend-details">
+                        <div class="detail-card">
+                            <i class="fa fa-clock-o"></i>
+                            <div>
+                                <strong>Lowest Price</strong>
+                                <span id="trend-lowest">--</span>
+                            </div>
+                        </div>
+                        <div class="detail-card">
+                            <i class="fa fa-trophy"></i>
+                            <div>
+                                <strong>Highest Price</strong>
+                                <span id="trend-highest">--</span>
+                            </div>
+                        </div>
+                        <div class="detail-card">
+                            <i class="fa fa-calendar"></i>
+                            <div>
+                                <strong>Tracked Since</strong>
+                                <span id="trend-since">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="view-settings" class="view">
+                    <h2><i class="fa fa-cog"></i> Settings</h2>
+                    
+                    <div class="settings-grid">
+                        <div class="settings-section">
+                            <h3><i class="fa fa-bell"></i> Notifications</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Push Notifications</label>
+                                    <p>Get browser notifications when price drops</p>
+                                </div>
+                                <input type="checkbox" id="push-notifications" checked onchange="saveSettings()">
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Email Alerts</label>
+                                    <p>Receive daily price update summaries</p>
+                                </div>
+                                <input type="checkbox" id="email-alerts" onchange="saveSettings()">
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Telegram Bot</label>
+                                    <p>Receive instant alerts on Telegram</p>
+                                </div>
+                                <img src="/static/Logos/telegram.svg" alt="Telegram" class="notification-logo" onclick="connectTelegram()">
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>WhatsApp Notifications</label>
+                                    <p>Get price alerts on WhatsApp</p>
+                                </div>
+                                <img src="/static/Logos/whatsapp.svg" alt="WhatsApp" class="notification-logo" onclick="connectWhatsApp()">
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3><i class="fa fa-paint-brush"></i> Appearance</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Dark Mode</label>
+                                    <p>Switch between light and dark theme</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="dark-mode" onchange="toggleTheme()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Compact View</label>
+                                    <p>Show more trackers per page</p>
+                                </div>
+                                <input type="checkbox" id="compact-view" onchange="saveSettings()">
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3><i class="fa fa-refresh"></i> Tracking</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Refresh Interval</label>
+                                    <p>How often to check prices</p>
+                                </div>
+                                <select id="refresh-interval" onchange="saveSettings()">
+                                    <option value="5">Every 5 minutes</option>
+                                    <option value="15" selected>Every 15 minutes</option>
+                                    <option value="30">Every 30 minutes</option>
+                                    <option value="60">Every hour</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Auto-Delete Old Trackers</label>
+                                    <p>Remove trackers older than</p>
+                                </div>
+                                <select id="auto-delete" onchange="saveSettings()">
+                                    <option value="0">Never</option>
+                                    <option value="7">7 days</option>
+                                    <option value="30" selected>30 days</option>
+                                    <option value="90">90 days</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Price Drop Alert %</label>
+                                    <p>Notify when price drops by</p>
+                                </div>
+                                <select id="drop-percentage" onchange="saveSettings()">
+                                    <option value="5">5%</option>
+                                    <option value="10" selected>10%</option>
+                                    <option value="15">15%</option>
+                                    <option value="20">20%</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3><i class="fa fa-database"></i> Data</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Export Data</label>
+                                    <p>Download all your trackers as JSON</p>
+                                </div>
+                                <button class="btn-secondary" onclick="exportData()">
+                                    <i class="fa fa-download"></i> Export
+                                </button>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Import Data</label>
+                                    <p>Restore trackers from backup</p>
+                                </div>
+                                <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
+                                    <i class="fa fa-upload"></i> Import
+                                </button>
+                                <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+                            </div>
+                            <div class="setting-item danger">
+                                <div class="setting-info">
+                                    <label>Clear All Data</label>
+                                    <p>Permanently delete all trackers</p>
+                                </div>
+                                <button class="btn-danger" onclick="clearAllData()">
+                                    <i class="fa fa-trash"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3><i class="fa fa-globe"></i> Region</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Display Currency</label>
+                                    <p>Default currency for prices</p>
+                                </div>
+                                <select id="currency-select" onchange="saveCurrencyPreference()">
+                                    <option value="INR ₹">INR (₹) - Indian Rupee</option>
+                                    <option value="USD $">USD ($) - US Dollar</option>
+                                    <option value="EUR €">EUR (€) - Euro</option>
+                                    <option value="GBP £">GBP (£) - British Pound</option>
+                                    <option value="JPY ¥">JPY (¥) - Japanese Yen</option>
+                                    <option value="CAD $">CAD ($) - Canadian Dollar</option>
+                                    <option value="AUD $">AUD ($) - Australian Dollar</option>
+                                    <option value="CNY ¥">CNY (¥) - Chinese Yuan</option>
+                                    <option value="KRW ₩">KRW (₩) - South Korean Won</option>
+                                    <option value="SGD $">SGD ($) - Singapore Dollar</option>
+                                    <option value="BRL R$">BRL (R$) - Brazilian Real</option>
+                                    <option value="MXN $">MXN ($) - Mexican Peso</option>
+                                    <option value="AED د.إ">AED (د.إ) - UAE Dirham</option>
+                                    <option value="THB ฿">THB (฿) - Thai Baht</option>
+                                    <option value="VND ₫">VND (₫) - Vietnamese Dong</option>
+                                    <option value="RUB ₽">RUB (₽) - Russian Ruble</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <label>Site Preference</label>
+                                    <p>Default shopping site</p>
+                                </div>
+                                <select id="site-preference" onchange="saveSettings()">
+                                    <option value="amazon">Amazon</option>
+                                    <option value="flipkart">Flipkart</option>
+                                    <option value="myntra">Myntra</option>
+                                    <option value="ajio">Ajio</option>
+                                    <option value="meesho">Meesho</option>
+                                    <option value="snapdeal">Snapdeal</option>
+                                    <option value="ebay">eBay</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3><i class="fa fa-info-circle"></i> About</h3>
+                            <div class="about-info">
+                                <p><strong>AI Price Alert v2.0</strong></p>
+                                <p>Smart price tracking assistant</p>
+                                <p class="version">Version 2.0.0</p>
+                                <div class="social-links">
+                                    <a href="#"><i class="fa fa-github"></i></a>
+                                    <a href="#"><i class="fa fa-twitter"></i></a>
+                                    <a href="#"><i class="fa fa-envelope"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast">
+            <div class="toast-icon success">
+                <i class="fa fa-check"></i>
+            </div>
+            <div class="toast-content">
+                <strong id="toast-title">Success!</strong>
+                <span id="toastMsg">Operation completed successfully</span>
+            </div>
+        </div>
+    </div>
+
+<script src="/static/script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/live-prices.js"></script>
+<script src="/static/ads.js"></script>
+<script>
+        // Initialize ads after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Push all ads to AdSense
+            if (window.adsbygoogle) {
+                document.querySelectorAll('.adsbygoogle').forEach(function(ad) {
+                    adsbygoogle.push(ad);
+                });
+            }
+        });
+    </script>
+    
+    <!-- Bottom Ad Container -->
+    <div class="ad-bottom-container" style="margin-top: 30px; padding: 20px 0; text-align: center;">
+        <div class="ad-label">Advertisement</div>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-1181608933401999"
+             data-ad-slot="7186431191"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+    </div>
+</body>
+</html>
+

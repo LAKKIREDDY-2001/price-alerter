@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "commonjs",
+    "checkJs": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true
+  },
+  "exclude": [
+    "node_modules",
+    "venv",
+    "static/**/*.js",
+    "browser-extension/**/*.js"
+  ],
+  "include": [
+    "*.js",
+    "app.py"
+  ]
+}
+

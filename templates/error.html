@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - AI Price Alert</title>
+    <meta name="description" content="AI Price Alert - Something went wrong page.">
+    <link rel="canonical" href="https://pricealerter.in/error">
+    <meta name="theme-color" content="#FF9F0A">
+    <meta name="msapplication-TileColor" content="#FF9F0A">
+    <!-- PNG Favicons for better browser compatibility -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png">
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="mask-icon" href="/static/logo.svg" color="#FF9F0A">
+    <meta name="msapplication-TileImage" content="/static/icon-144.png">
+    <link rel="stylesheet" href="/static/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    
+    <div class="auth-container">
+        <div class="auth-card" style="max-width: 500px;">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fa fa-bell" style="color: #ff5f56;"></i>
+                    <span>AI Price Alert</span>
+                </div>
+            </div>
+            
+            <div style="text-align: center; padding: 20px 0;">
+                <i class="fa fa-exclamation-triangle" style="font-size: 64px; color: #ff5f56; margin-bottom: 20px;"></i>
+                <h2 style="margin-bottom: 12px; color: #ff5f56;">Something went wrong</h2>
+                <p style="color: #666; margin-bottom: 24px;">{{ error }}</p>
+                
+                <div style="background: #fff3e0; padding: 16px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid #ff9f0a;">
+                    <p style="font-size: 14px; color: #666; margin: 0;">
+                        <i class="fa fa-lightbulb" style="color: #ff9f0a;"></i>
+                        The reset link may have expired or already been used. 
+                        Request a new password reset from the login page.
+                    </p>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <a href="/login" class="auth-btn" style="display: inline-block; text-decoration: none;">
+                        <i class="fa fa-sign-in"></i> Back to Login
+                    </a>
+                    <a href="/forgot-password" class="auth-btn" style="display: inline-block; text-decoration: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fa fa-refresh"></i> Request New Link
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
