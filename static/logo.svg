@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="240" fill="#FF9F0A"/>
+  <circle cx="256" cy="256" r="200" fill="#FFFFFF"/>
+  <circle cx="200" cy="280" r="60" fill="#FF9F0A"/>
+  <text x="200" y="300" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="white" text-anchor="middle">₹</text>
+  <path d="M280 200l-40 40-20-20" stroke="#27C93F" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
