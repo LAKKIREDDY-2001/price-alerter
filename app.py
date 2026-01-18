@@ -1731,7 +1731,12 @@ def scrape_price(url):
 
 @app.route('/')
 def index():
-    """Main page - shows home page with live price tracking"""
+    """Main page - shows home page or redirects to signup if not logged in"""
+    if 'user_id' not in session:
+        # Not logged in, redirect to signup page
+        return render_template('signup.html')
+    
+    # Logged in user - show the dashboard
     return render_template('index.html')
 
 @app.route('/host')
