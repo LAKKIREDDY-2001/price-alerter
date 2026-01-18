@@ -1731,13 +1731,8 @@ def scrape_price(url):
 
 @app.route('/')
 def index():
-    """Main page - shows home page or redirects to signup if not logged in"""
-    if 'user_id' not in session:
-        # Not logged in, redirect to signup page
-        return render_template('signup.html')
-    
-    # Logged in user - show the dashboard
-    return render_template('index.html')
+    """Main page - ALWAYS shows signup page first"""
+    return render_template('signup.html')
 
 @app.route('/host')
 def host_page():
@@ -1794,8 +1789,13 @@ def generate_share_link():
 
 @app.route('/dashboard')
 def dashboard():
-    """Redirect dashboard to home page"""
-    return redirect(url_for('index'))
+    """Dashboard page - shows dashboard only if logged in"""
+    if 'user_id' not in session:
+        # Not logged in, redirect to signup page
+        return redirect(url_for('signup_page'))
+    
+    # Logged in user - show the dashboard
+    return render_template('index.html')
 
 @app.route('/api/user')
 def get_user():

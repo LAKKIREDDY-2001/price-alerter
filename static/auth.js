@@ -101,7 +101,7 @@ async function handleSignup(e) {
             console.log('[SIGNUP] SUCCESS: Account created!');
             showToast('success', data.message || 'Account created successfully!');
             setTimeout(() => {
-                window.location.href = '/';
+                window.location.href = '/dashboard';
             }, 1500);
         } else {
             console.log('[SIGNUP] ERROR:', data.error || data.message || 'Signup failed');
@@ -148,7 +148,7 @@ async function handleLogin(e) {
         if (response.ok) {
             showToast('success', 'Login successful!');
             setTimeout(() => {
-                window.location.href = '/';
+                window.location.href = '/dashboard';
             }, 1200);
         } else {
             showError(data.error || 'Invalid credentials');
